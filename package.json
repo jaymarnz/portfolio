@@ -1,0 +1,35 @@
+{
+  "name": "portfolio",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "scripts": {
+    "dev": "node scripts/cleanup.mjs && next dev",
+    "build": "node scripts/cleanup.mjs && next build",
+    "deploy": "node scripts/deploy.mjs",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "flickr-justified-gallery": "^2.2.0",
+    "lightgallery": "^2.8.2",
+    "next": "15.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.6",
+    "exiftool-vendored": "^29.1.0",
+    "postcss": "^8",
+    "postcss-html": "^1.8.0",
+    "postcss-selector-parser": "^7.1.0",
+    "sharp": "^0.33.5",
+    "stylelint-config-standard": "^37.0.0",
+    "stylelint-config-tailwindcss": "^1.0.0",
+    "tailwindcss": "^4.0.0",
+    "uuid": "^11.0.5"
+  }
+}

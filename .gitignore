@@ -1,0 +1,59 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+/data/*
+/favicon
+
+# if you don't want to use the standard nextjs 404 page you can also override it here. This can also
+# display a customized error if the bucket has a bucket access policy preventing a user from accessing
+# the bucket directly
+/public/error.html
+
+# this is the local configuration file which you need to create
+# use /config/config.template.cjs as an example. If this file doesn't
+# exist the generic template will be used
+/config/config.cjs
+
+# gallery images
+/galleries/*
+/public/images/*
+
+# misc
+.DS_Store
+*.pem
+todo.txt
+LOCAL_CONFIG.*
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
