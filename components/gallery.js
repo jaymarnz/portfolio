@@ -69,7 +69,7 @@ export default function Gallery({data, rowHeight=300, gutter=6}) {
       elementClassNames="gallery my-auto mx-0"
       mobileSettings={{
         controls: false,
-        showCloseIcon: false,
+        showCloseIcon: true,
         download: false
       }}
     >
