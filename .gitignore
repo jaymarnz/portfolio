@@ -40,7 +40,7 @@
 .DS_Store
 *.pem
 todo.txt
-LOCAL_CONFIG.*
+README_LOCAL.*
 
 # debug
 npm-debug.log*
