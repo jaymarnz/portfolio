@@ -65,11 +65,11 @@ export async function getStaticProps({ params }) {
 
 const GalleryPage = ({ galleryData }) => (
   <>
-    <Header header={galleryData.header} />
     <PageWrapper>
+      <Header header={galleryData.header} />
       <Gallery data={galleryData} />
+      <Footer footer={galleryData.footer} />
     </PageWrapper>
-    <Footer footer={galleryData.footer} />
   </>
 );
 
