@@ -6,7 +6,7 @@ import { addNameMapping, getOriginalName } from '@/utils/nameMap';
 
 import Header from '@components/header';
 import Footer from '@components/footer';
-import PageWrapper from '@components/pagewrapper';
+import PageWrapper from '@/components/pageWrapper';
 import Gallery from '@components/gallery';
 
 import Config from '@config/configLoader.cjs';
@@ -66,8 +66,8 @@ export async function getStaticProps({ params }) {
 const GalleryPage = ({ galleryData }) => (
   <>
     <PageWrapper>
-      <Header header={galleryData.header} icons={['home']}/>
-      <Gallery data={galleryData} />
+      <Header header={galleryData.header} icons={['home']} />
+      <Gallery images={galleryData.images} />
       <Footer footer={galleryData.footer} />
     </PageWrapper>
   </>

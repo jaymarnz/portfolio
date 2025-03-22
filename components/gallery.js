@@ -10,7 +10,7 @@ import Photo from '@components/photo';
 
 import Config from '@config/configLoader.cjs';
 
-export default function Gallery({data, rowHeight=300, gutter=6}) {
+export default function Gallery({images, rowHeight=300, gutter=6}) {
   const lightGallery = useRef(null);
   const onInit = useCallback((detail) => {
     if (detail) {
@@ -73,7 +73,7 @@ export default function Gallery({data, rowHeight=300, gutter=6}) {
         download: false
       }}
     >
-      {data.images.map((image, index) => (
+      {images.map((image, index) => (
         <div
           key={index}
           className="gallery_item cursor-pointer"
