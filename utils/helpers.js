@@ -77,44 +77,66 @@ async function getMetadata(imagePath) {
 }
 
 // generate the blur data for an image
-// not used because I've switched to generating multiple images and using native
-// img srcset & sizes because node/image doesn't seem to support this for static SSG
 async function generateBlurData(imagePath) {
-  let blurData = '';
-
   try {
     const buffer = await sharp(imagePath)
-      .resize(10) // Resize to a very small image
-      .blur() // Apply a blur effect
+      .resize(10)
+      .blur()
       .toBuffer();
-    blurData = `data:image/webp;base64,${buffer.toString('base64')}`;
+    return `data:image/webp;base64,${buffer.toString('base64')}`;
   } catch (error) {
     console.error(`Error generating blurData for ${imagePath}:`, error);
+    return null;
   }
-  
-  return blurData;
 }
 
 // convert the source image to the destination format specified in the config
-async function convertImageFormat(sourceFilePath, targetFilePath, metadata, width) {
+async function convertImageFormat({ sourceFilePath, targetFilePath, metadata, size, toSRGB = false }) {
   try {
-    await sharp(sourceFilePath)
+    let sharpInstance = sharp(sourceFilePath)
       .withExif({ // strip all metadata except copyright
         IFD0: {
           Copyright: metadata.Copyright || Config.copyright
         }
       })
-      .resize(width, null, { withoutEnlargement: true })
-      .toFile(targetFilePath);
+      .resize(size, null, { withoutEnlargement: true });
+
+    if (toSRGB) {
+      sharpInstance = sharpInstance.toColorspace('srgb').withIccProfile('srgb');
+    } else {
+      sharpInstance = sharpInstance.keepIccProfile();
+    }
+    
+    switch (path.extname(targetFilePath).toLowerCase()) {
+      case '.avif':
+        sharpInstance = sharpInstance.avif({
+          quality: 70,
+          chromaSubsampling: '4:2:0',
+          // effort: 4, // Adjust encoding speed/quality (0-9, higher is slower/better)
+        });
+        break;
+
+      case '.jpg':
+      case '.jpeg':
+        sharpInstance = sharpInstance.jpeg({
+          quality: 70,
+        });
+        break;
+    }
+
+    await sharpInstance.toFile(targetFilePath);
   } catch (error) {
     console.error(`Error converting image format for ${sourceFilePath}:`, error);
   }
 }
 
-// the top-level image processing function. It's job is essentially to copy the source file
-// to the target public directory. Along the way the format is updated, metadata removed,
-// copyright inserted if needed, title determined, and placeholder blur data generated.
-export async function processImageFile(galleryDirectory, imageFile) {
+// This is the top-level private image processing function. See processImageFile for the public api
+// that wraps this function and manages concurrency.
+//
+// Each source file in a gallery is resized and copied to multiple images while updating the format,
+// removing metadata, inserting copyright if needed, determining the title and generating a blur
+// image for a placeholder.
+async function processImage(galleryDirectory, imageFile) {
   // todo: for now I've disabled srcset/sizes in Photo component and gallery/index.js because it
   // misbehaves on mobile devices causes horizontal and vertical images not to fill the screen
   // as well as messing up the borders around some images in the masonry. 
@@ -125,14 +147,12 @@ export async function processImageFile(galleryDirectory, imageFile) {
   // that mobile devices are using the other sizes automatically so for now I'll continue to
   // generate them.
   const sizes = [640, 1080, 1440, 1920];
-  
   // const sizes = [1920]; // must always have one so it generates both the avif and jpg
 
   const targetDirectory = path.join(process.cwd(), Config.imageRoot.fileSystem);
   const sourceFilePath = path.join(galleryDirectory, imageFile);
   const metadata = await getMetadata(sourceFilePath);
   const imageTitle = metadata.Title || metadata.Description || '';
-  const blurData = await generateBlurData(sourceFilePath); // see the comment at generateBlurData
 
   if (!fs.existsSync(targetDirectory)) {
     fs.mkdirSync(targetDirectory, { recursive: true });
@@ -147,28 +167,24 @@ export async function processImageFile(galleryDirectory, imageFile) {
 
   for (const size of sizes) {
     const imageFileName = `${fileName}-${size}${extension}`;
-    const outputFilePath = path.join(targetDirectory, imageFileName);
+    const targetFilePath = path.join(targetDirectory, imageFileName);
     const imageUrl = path.join(Config.imageRoot.URL, imageFileName);
 
-    await convertImageFormat(sourceFilePath, outputFilePath, metadata, size);
+    await convertImageFormat({ sourceFilePath, targetFilePath, metadata, size });
 
     if (srcSet) srcSet = srcSet + ',';
     srcSet = srcSet + `${imageUrl} ${size}w`;
   }
 
-  // generate a default jpg image in the largest size as the fallback image
-  let imageURL;
+  // generate a fallback jpg image in the largest size with colorspace sRGB
   const defaultSize = Math.max(...sizes);
+  const fallbackImageFilename = `${fileName}-default.jpg`;
+  const targetFilePath = path.join(targetDirectory, fallbackImageFilename);
+  const imageURL = path.join(Config.imageRoot.URL, fallbackImageFilename);
   
-  if (Config.imageFormat === 'jpg' || Config.imageFormat === 'jpeg') {
-    imageURL = path.join(Config.imageRoot.URL, `${fileName}-${defaultSize}.${Config.imageFormat}`);
-  } else {
-    const fallbackImageFilename = `${fileName}-${defaultSize}.jpg`;
-    const outputFilePath = path.join(targetDirectory, fallbackImageFilename);
-    imageURL =  path.join(Config.imageRoot.URL, fallbackImageFilename);
-    await convertImageFormat(sourceFilePath, outputFilePath, metadata, defaultSize);
-  }
-
+  await convertImageFormat({ sourceFilePath, targetFilePath, metadata, defaultSize, toSRGB: true });
+  const blurData = await generateBlurData(targetFilePath); // get blur data from fallback image
+  
   return {
     blurData,
     srcSet,
@@ -180,4 +196,40 @@ export async function processImageFile(galleryDirectory, imageFile) {
       title: `${imageTitle}`,
     }
   };
+}
+
+// because there are multiple index.js files for the same gallery (the home page and the gallery page)
+// we need to manage concurrency and prevent race conditions. A benefit is we can cache the results
+// and reduce build time a bit. Therefore, this is the public function for processing an image file
+const processedFilesCache = new Map(); // Cache to store processed results
+const processingLocks = new Map();     // Locking mechanism to track ongoing processing tasks
+
+export async function processImageFile(galleryDirectory, imageFile) {
+  const cacheKey = `${galleryDirectory}/${imageFile}`;
+
+  // Check if the file has already been processed
+  if (processedFilesCache.has(cacheKey)) {
+    return processedFilesCache.get(cacheKey);
+  }
+
+  // Check if the file is currently being processed
+  if (processingLocks.has(cacheKey)) {
+    return await processingLocks.get(cacheKey); // Wait for the ongoing task to complete
+  }
+
+  // Create a new processing task
+  const processingTask = (async () => {
+    return await processImage(galleryDirectory, imageFile);
+  })();
+
+  // Store the processing task in the lock map
+  processingLocks.set(cacheKey, processingTask);
+
+  try {
+    const result = await processingTask;
+    processedFilesCache.set(cacheKey, result); // Cache the result for future calls
+    return result;
+  } finally {
+    processingLocks.delete(cacheKey); // Remove the lock once processing is complete
+  }
 }
