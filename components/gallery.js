@@ -91,8 +91,8 @@ export default function Gallery({images, rowHeight=300, gutter=6}) {
             src={image.src}
             srcset={image.srcSet}
             sizes="(max-width: 540px) 100vw, (max-width: 1305px) 50vw, (max-width: 1740px) 33vw, (max-width: 2393px) 25vw, (max-width: 3046px) 20vw, (max-width: 3698px) 17vw, 15vw"
-            width={image.width} // these aren't used for actual height but are used
-            height={image.height} // to prevent content moving after images load (eg. footer)
+            width={image.width} // these aren't used for actual size but must be here or else the page doesn't display correctly
+            height={image.height}
             blurData={image.blurData}
           />
         </div>

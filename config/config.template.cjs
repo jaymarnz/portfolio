@@ -8,19 +8,19 @@
 // otherwise one or the other will give errors
 
 const Config = {
-  imageRoot: {
-    source: '/galleries',                             // location of the source image galleries - these files are not modified
-    fileSystem: 'public/images',                      // filesystem location of the final images that will be served - created during each build
-    URL: '/images',                                   // URL root of the same final images
+  imageRoot: {            
+    source: '/galleries',                                         // location of the source image galleries - these files are not modified
+    fileSystem: 'public/images',                                  // filesystem location of the final images that will be served - created during each build
+    URL: '/images',                                               // URL root of the same final images
   },
-  imageFormat: 'avif',                                // website image format - source files will be converted to this format
-  tempDataDir: 'data',                                // temporary data directory used during a build
-  allowedExtensions: ['.avif', '.jpg', '.jpeg'],      // allowed image file extensions
-  copyright: '[My copyright text]',                   // written into image metadata if an image doesn't already have it
-  title: 'My Portfolio',                              // the title of every page
-  description: 'My portfolio website',                // displayed on the home page
-  transition: 'lg-fade',                              // gallery image transition mode
-  awsBucket: {                                        // S3 bucket that will contain the site
+  imageFormat: 'avif',                                            // website image format - source files will be converted to this format + an sRGB fallback jpeg
+  tempDataDir: 'data',                                            // temporary data directory used during a build
+  allowedExtensions: ['.avif', '.jpg', '.jpeg', '.tif', '.tiff'], // allowed image file extensions
+  copyright: '[My copyright text]',                               // written into image metadata if an image doesn't already have it
+  title: 'My Portfolio',                                          // the title of every page
+  description: 'My portfolio website',                            // displayed on the home page
+  transition: 'lg-fade',                                          // gallery image transition mode
+  awsBucket: {                                                    // S3 buckets that will contain the dev and prod sites
     dev: '[your-development-aws-bucket-name]',
     prod: '[your-production-aws-bucket-name]'
   }
